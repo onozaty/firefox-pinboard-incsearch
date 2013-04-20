@@ -1,7 +1,3 @@
 #pinboardIncsearchButton {
-  list-style-image: url("chrome://pinboard_incsearch/skin/icon-medium.png");
-}
-
-toolbar[iconsize="small"] #pinboardIncsearchButton {
   list-style-image: url("chrome://pinboard_incsearch/skin/icon-small.png");
 }
