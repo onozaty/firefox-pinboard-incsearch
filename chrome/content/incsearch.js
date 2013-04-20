@@ -66,14 +66,9 @@ IncSearch.prototype = {
   highClassName: 'high',
   highClassNum: 4,
   delim: ' ',
-  escape: true,
   pagePrevName: 'prev',
   pageNextName: 'next',
   useHotkey: true,
-  urlTarget: '_blank',
-  editTarget: '_blank',
-
-  startElementText: '<table><tr><th></th><th width="60%">Description</th><th width="20%">Tags</th><th width="20%">Time</th><th></th>',
 
   setOptions: function(options) {
 
@@ -92,11 +87,13 @@ IncSearch.prototype = {
         this.startSearch(input);
       } else {
         if (this.startSearchTimer) clearTimeout(this.startSearchTimer);
-        this.startSearchTimer = setTimeout(this._bind(this.startSearch, input), this.delay);
+        var startSearchFunction = this._bind(this.startSearch, input);
+        this.startSearchTimer = setTimeout(function() { startSearchFunction(); }, this.delay);
       }
     }
     if (this.checkLoopTimer) clearTimeout(this.checkLoopTimer);
-    this.checkLoopTimer = setTimeout(this._bind(this.checkLoop), this.interval);
+    var checkLoopFunction = this._bind(this.checkLoop);
+    this.checkLoopTimer = setTimeout(function() { checkLoopFunction(); }, this.interval);
   },
 
   isChange: function(input) {
@@ -173,7 +170,6 @@ IncSearch.prototype = {
     } else if (bottomPos > document.documentElement.clientHeight + document.documentElement.scrollTop) {
       window.scrollTo(0, bottomPos - document.documentElement.clientHeight);
     }
-
     this.nowRow = rowNo;
   },
   openUrl: function(rowNo) {
@@ -222,7 +218,7 @@ IncSearch.prototype = {
     var sql = [
        this.searchSql, where.where,
        ' ORDER BY id',
-       ' LIMIT ', this.dispMax, 
+       ' LIMIT ', this.dispMax,
        ' OFFSET ', (start - 1)].join('');
 
     try {
@@ -318,7 +314,7 @@ IncSearch.prototype = {
       }
     }
 
-    pageLinkElm.innerHTML = '';
+    pageLinkElm.textContent = '';
 
     if (prev_page) {
       this.createPageAnchor(pageLinkElm, this.pagePrevName, pageNo - 1);
@@ -366,7 +362,7 @@ IncSearch.prototype = {
       }
       displayInfo = ['(display :', start, '-', end, ')'].join('');
     }
-    this.status.innerHTML = [this.resultCount.toString(), ' hits ',
+    this.status.textContent = [this.resultCount.toString(), ' hits ',
                              displayInfo, ' / total : ', this.totalCount].join('');
   },
   searchAfter: function() {
@@ -374,7 +370,7 @@ IncSearch.prototype = {
     window.scrollTo(0, 0);
   },
   searchBefore: function() {
-    this.status.innerHTML = 'Search...';
+    this.status.textContent = 'Search...';
   },
   changePageAfter: function(pageNo) {
     this.createInfo();
@@ -420,19 +416,40 @@ IncSearch.prototype = {
   },
 
   createViewArea: function(patternList) {
-    var elementText = [];
 
-    patternList = this.getHighlightPatterns(patternList);
+    var table = Ebi.createElement('table');
 
-    for (var i = 0, len = this.results.length; i < len; i++) {
-      elementText.push(this.createLineElement(this.results[i], patternList));
+    if (this.results.length > 0) {
+
+      table
+        .start('tr')
+          .start('th').end()
+          .start('th')
+            .property({width: '60%'})
+            .append('Description')
+          .end()
+          .start('th')
+            .property({width: '20%'})
+            .append('Tags')
+          .end()
+          .start('th')
+            .property({width: '20%'})
+            .append('Time')
+          .end()
+          .start('th').end()
+        .end();
+
+      patternList = this.getHighlightPatterns(patternList);
+
+      for (var i = 0, len = this.results.length; i < len; i++) {
+        table.append(
+          this.createLineElement(this.results[i], patternList));
+      }
     }
 
-    if (elementText.length > 0) {
-      if (this.startElementText) elementText.unshift(this.startElementText);
-      if (this.endElementText) elementText.push(this.endElementText);
-      this.viewArea.innerHTML = elementText.join('');
-    }
+    Ebi.createElement(this.viewArea)
+      .clear()
+      .append(table);
 
     if (this.afterHookCreateView) {
       this.afterHookCreateView(patternList);
@@ -455,7 +472,7 @@ IncSearch.prototype = {
   },
 
   clearViewArea: function() {
-    this.viewArea.innerHTML = '';
+    this.viewArea.textContent = '';
     this.results = null;
     this.resultCount = null;
     this.nowPage = 0;
@@ -464,40 +481,23 @@ IncSearch.prototype = {
 
   createLineElement: function(bookmark, patternList) {
 
-    var text = ['<tr><td></td><td>'];
+    return Ebi.createElement('tr')
+      .start('td').end()
+      // url, title, info
+      .append(this.createTitleElement(bookmark, patternList))
+      // tags
+      .append(this.createHighlightElement('td', this.tagsString(bookmark.tags), patternList))
+      // time
+      .append(this.createHighlightElement('td', bookmark.time, patternList, false))
+      // edit
+      .append(this.createEditElement(bookmark, patternList));
+  },
 
-    // url, title
-    text.push(this.createTitleElement(bookmark, patternList));
+  createHighlightElement: function(targetElement, value, patternList, highlight) {
 
-    // info
-    if (bookmark.info) {
-      text.push(this.createElement(bookmark.info, patternList, 'p'));
+    if (typeof targetElement == 'string') {
+      targetElement = Ebi.createElement(targetElement);
     }
-    text.push('</td>');
-
-    // tags
-    text.push(this.createElement(this.tagsString(bookmark.tags), patternList, 'td'));
-
-    // time
-    text.push(this.createElement(bookmark.time, patternList, 'td', false));
-
-    // edit
-    text.push(this.createEditElement(bookmark, patternList));
-    text.push('</tr>');
-
-    return text.join('');
-  },
-
-  createElement: function(value, patternList, tagName, highlight) {
-
-    return ['<', tagName, '>',
-            this.createText(value, patternList, highlight),
-            '</', tagName, '>'].join('');
-  },
-
-  createText: function(value, patternList, highlight) {
-
-    var textList = [];
 
     if (highlight == null) highlight = this.highlight;
 
@@ -506,22 +506,21 @@ IncSearch.prototype = {
       var first = this.getFirstMatch(value, patternList);
 
       while (first.listIndex != -1) {
-        textList.push(this._escapeHTML(value.substr(0, first.matchIndex)));
-        textList.push('<strong class="');
-        textList.push(this.highClassName);
-        textList.push((first.listIndex % this.highClassNum) + 1);
-        textList.push('">');
-        textList.push(this._escapeHTML(value.substr(first.matchIndex, patternList[first.listIndex].length)));
-        textList.push('</strong>');
+        targetElement
+          .append(value.substr(0, first.matchIndex))
+          .start('strong')
+            .property({className: this.highClassName + ((first.listIndex % this.highClassNum) + 1)})
+            .append(value.substr(first.matchIndex, patternList[first.listIndex].length))
+          .end();
 
         value = value.substr(first.matchIndex + patternList[first.listIndex].length);
         first = this.getFirstMatch(value, patternList);
       }
     }
 
-    textList.push(this._escapeHTML(value));
+    targetElement.append(value);
 
-    return textList.join('');
+    return targetElement;
   },
 
   tagsString: function(tags, sep) {
@@ -537,32 +536,34 @@ IncSearch.prototype = {
   },
 
   createTitleElement: function(bookmark, patternList) {
-    var text = ['<a href="',  bookmark.url, '"'];
-    if (this.urlTarget) {
-      text.push(' target="', this.urlTarget, '" ');
-    }
-    text.push('>');
-    text.push(this.createText(bookmark.title, patternList));
-    text.push('</a>');
+
+    var a = Ebi.createElement('a')
+              .property({href: bookmark.url, target: '_blank'});
+
+    this.createHighlightElement(a ,bookmark.title, patternList)
+
+    var td = Ebi.createElement('td')
+    td.append(a);
 
     if (this.addTitleText) {
-      text.push(this.addTitleText(bookmark, patternList));
+      td.append(this.addTitleText(bookmark, patternList));
     }
 
-    text.push('<br />');
-    return text.join('');
+    td
+      .start('br').end()
+      .append(
+        this.createHighlightElement('p', bookmark.info, patternList));
+
+    return td;
   },
 
   createEditElement: function(bookmark, patternList) {
 
-    var text = ['<td><a href="',  this.createEditUrl(bookmark), '"'];
-    if (this.editTarget) {
-      text.push(' target="', this.editTarget, '" ');
-    }
-
-    text.push('>edit</a></td>');
-
-    return text.join('');
+    return Ebi.createElement('td')
+      .start('a')
+        .property({href: this.createEditUrl(bookmark), target: '_blank'})
+        .append('edit')
+      .end();
   },
 
   matchIndex: function(value, pattern) {
@@ -619,13 +620,5 @@ IncSearch.prototype = {
     var self = this;
     var args = Array.prototype.slice.call(arguments, 1);
     return function(event){ event = event || window.event; func.apply(self, [event].concat(args)); };
-  },
-  _escapeHTML: function(value) {
-    if (this.escape) {
-      return value.replace(/\&/g, '&amp;').replace( /</g, '&lt;').replace(/>/g, '&gt;')
-                .replace(/\"/g, '&quot;').replace(/\'/g, '&#39;').replace(/\n|\r\n/g, '<br />');
-    } else {
-      return value;
-    }
   }
 }
