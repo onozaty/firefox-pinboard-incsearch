@@ -1,0 +1,6 @@
+content  pinboard_incsearch  chrome/content/
+skin     pinboard_incsearch  classic/1.0  chrome/skin/
+
+overlay  chrome://browser/content/browser.xul  chrome://pinboard_incsearch/content/overlay.xul
+style    chrome://browser/content/browser.xul  chrome://pinboard_incsearch/skin/toolbar-button.css
+style    chrome://global/content/customizeToolbar.xul  chrome://pinboard_incsearch/skin/toolbar-button.css

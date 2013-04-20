@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<overlay id="pinboardIncsearchOverlay"
+  xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
+  <commandset id="mainCommandSet">
+    <command id="pinboardIncsearchCommand" oncommand="open_pinboardIncsearch();"/>
+  </commandset>
+  <menupopup id="menu_ToolsPopup">
+    <menuitem id="pinboardIncsearchMenuitem"
+      label="Pinboard IncSearch"
+      insertbefore="sanitizeSeparator"
+      key="key_open_pinboardIncsearch"
+      command="pinboardIncsearchCommand" />
+  </menupopup>
+  <toolbarpalette id="BrowserToolbarPalette">
+    <toolbarbutton id="pinboardIncsearchButton" class="toolbarbutton-1"
+      label="Pinboard IncSearch" tooltiptext="Pinboard IncSearch"
+      command="pinboardIncsearchCommand" />
+  </toolbarpalette>
+  <keyset id="mainKeyset">
+    <key id="key_open_pinboardIncsearch" modifiers="accel" key=":" command="pinboardIncsearchCommand" />
+  </keyset>
+  <script type="application/x-javascript">
+  <![CDATA[
+    window.addEventListener('load', function() {
+
+      var openKey = document.getElementById('key_open_pinboardIncsearch');
+
+      var prefSvc = Components.classes["@mozilla.org/preferences-service;1"].getService(Components.interfaces.nsIPrefService);
+      var prefBranch = prefSvc.getBranch('extensions.pinboard_incsearch.');
+
+      try {
+        var modifiers = prefBranch.getCharPref('shortcut.open.modifiers');
+        openKey.setAttribute('modifiers', modifiers);
+      } catch(e) {}
+
+      try {
+        var key = prefBranch.getCharPref('shortcut.open.key');
+        openKey.setAttribute('key', key);
+      } catch(e) {}
+
+      try {
+        if (prefBranch.getBoolPref('shortcut.open.disabled')) {
+          openKey.parentNode.removeChild(openKey);
+        }
+      } catch(e) {}
+
+    }, false);
+
+    var open_pinboardIncsearch = function() {
+      var openUrl = 'chrome://pinboard_incsearch/content/view.html';
+      var target = null;
+
+      var tabs = gBrowser.tabContainer.childNodes;
+
+      for (var i = 0, len = tabs.length; i < len; i++) {
+        if (tabs[i].linkedBrowser.currentURI.spec == openUrl) {
+          target = tabs[i];
+          break;
+        }
+      }
+
+      if (!target) {
+        gBrowser.selectedTab = gBrowser.addTab(openUrl);
+      } else {
+        gBrowser.selectedTab = target;
+        target.linkedBrowser.contentDocument.getElementById('text').focus();
+      }
+    }
+
+  ]]>
+  </script>
+
+</overlay>
