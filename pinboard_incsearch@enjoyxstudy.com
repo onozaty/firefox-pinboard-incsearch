@@ -1,1 +1,1 @@
-D:\www\firefox\extension\pinboard_incsearch\src
+<hoge>\github\firefox-pinboard-incsearch

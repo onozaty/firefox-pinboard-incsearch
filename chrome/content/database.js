@@ -21,23 +21,23 @@ Database.getService = function(cls, interface) {
   return Components.classes[cls].getService(Components.interfaces[interface]);
 }
 
-Database.bindParams = function(wrapper, params) {
+Database.bindParams = function(statement, params) {
 
   if (params == null) return;
 
   // Hash
   if (typeof(params) == 'object' && params.length == null) {
-    var paramNames = this.getParamNames(wrapper);
+    var paramNames = this.getParamNames(statement);
     for each(var name in paramNames) {
       var param = params[name];
       if (typeof(param)=='undefined') continue;
 
       if (param instanceof Date){
-        wrapper.params[name] = param.getTime();
+    	  statement.params[name] = param.getTime();
         continue;
       }
 
-      wrapper.params[name] = param;
+      statement.params[name] = param;
     }
     return;
   }
@@ -47,24 +47,21 @@ Database.bindParams = function(wrapper, params) {
     params = [].concat(params);
   }
 
-  var statement = wrapper.statement;
   for (var i = 0, len = statement.parameterCount; i < len; i++) {
     statement.bindUTF8StringParameter(i, params[i]);
   }
 }
 
-Database.getParamNames = function(wrapper) {
+Database.getParamNames = function(statement) {
   var paramNames = [];
-  var statement = wrapper.statement;
   for (var i=0, len=statement.parameterCount ; i<len ; i++) {
     paramNames.push(statement.getParameterName(i).substr(1));
   }
   return paramNames;
 }
 
-Database.getColumnNames = function(wrapper) {
+Database.getColumnNames = function(statement) {
   var columnNames=[];
-  statement = wrapper.statement;
   for ( var i = 0, len = statement.columnCount; i < len; i++) {
     columnNames.push(statement.getColumnName(i));
   }
@@ -90,12 +87,7 @@ Database.prototype = {
   createStatement: function(sql) {
 
     try {
-      var statement = this.connection.createStatement(sql);
-      var wrapper = Components.classes["@mozilla.org/storage/statement-wrapper;1"]
-                      .createInstance(Components.interfaces.mozIStorageStatementWrapper);
-
-      wrapper.initialize(statement);
-      return wrapper;
+      return this.connection.createStatement(sql);
     } catch(e) {
       this.throwException(e);
     }
@@ -108,7 +100,7 @@ Database.prototype = {
       handler = temp;
     }
 
-    var statement = sql.initialize ? sql : this.createStatement(sql);
+    var statement = sql.execute ? sql : this.createStatement(sql);
     try{
       Database.bindParams(statement, params);
 
