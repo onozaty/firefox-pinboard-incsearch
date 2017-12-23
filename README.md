@@ -1,4 +1,5 @@
 firefox-pinboard-incsearch
 ==========================
 
-Pinboard IncSearch Add-ons for Firefox
+For Firefox 57 or later, please use the following.
+* https://github.com/onozaty/firefox-online-bookmark-incsearch
